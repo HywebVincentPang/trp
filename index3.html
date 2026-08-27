@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>病安通報單 · 後台表單設計雛型</title>
+<style>
+  :root{
+    --bg:#f2f4f5;
+    --surface:#ffffff;
+    --ink:#1c2b2a;
+    --ink-soft:#4b5d5b;
+    --ink-faint:#859391;
+    --line:#dde4e2;
+    --line-soft:#e9edec;
+    --accent:#0d6e63;
+    --accent-soft:#e6f2ef;
+    --accent-strong:#0a534a;
+    --amber:#a9660b;
+    --amber-soft:#fbf1e2;
+    --danger:#c04a3d;
+    --radius:9px;
+    --shadow:0 1px 2px rgba(20,40,38,.05), 0 6px 18px -10px rgba(20,40,38,.12);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); height:100%;}
+  body{font-size:13.5px; line-height:1.55;}
+  h1,h2,h3,h4{margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  code{font-family:'SF Mono','Menlo',monospace;}
+
+  .topbar{
+    height:54px; background:var(--surface); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:16px; padding:0 20px; position:sticky; top:0; z-index:50;
+  }
+  .topbar .brand{display:flex; align-items:center; gap:9px; font-weight:700; font-size:14.5px;}
+  .topbar .brand .dot{width:9px; height:9px; border-radius:50%; background:var(--accent);}
+  .version-select{
+    display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-soft);
+    border:1px solid var(--line); border-radius:7px; padding:6px 10px; background:#fff;
+  }
+  .version-select select{border:none; background:transparent; font-size:12.5px; font-weight:600; color:var(--ink); font-family:inherit;}
+  .version-status{font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--amber-soft); color:var(--amber);}
+  .topbar .spacer{flex:1;}
+  .btn{border:none; border-radius:7px; padding:8px 16px; font-size:12.5px; font-weight:600;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:hover{background:var(--accent-strong);}
+  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent-strong);}
+  .btn-sm{padding:5px 11px; font-size:11.5px; border-radius:6px;}
+
+  .shell{display:grid; grid-template-columns:270px 1fr 340px; height:calc(100vh - 54px);}
+
+  /* ---------- left: structure tree ---------- */
+  .pane-left{border-right:1px solid var(--line); background:var(--surface); overflow-y:auto; padding:16px 12px;}
+  .pane-title{font-size:11px; font-weight:700; color:var(--ink-faint); letter-spacing:.06em; text-transform:uppercase; padding:4px 8px 8px;}
+  .sec-node{margin-bottom:6px;}
+  .sec-head{
+    display:flex; align-items:center; gap:8px; padding:8px 8px; border-radius:7px; font-weight:700; font-size:13px;
+    color:var(--ink);
+  }
+  .sec-head .badge{width:20px; height:20px; border-radius:6px; background:var(--accent); color:#fff; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex:none;}
+  .sec-head .flag{margin-left:auto; font-size:10px; color:var(--ink-faint); font-weight:500;}
+  .group-list{margin-left:14px; border-left:1px dashed var(--line); padding-left:10px; display:flex; flex-direction:column; gap:2px;}
+  .group-row{
+    display:flex; flex-direction:column; gap:4px; padding:7px 9px; border-radius:7px; cursor:pointer; font-size:12.5px;
+  }
+  .group-row:hover{background:var(--accent-soft);}
+  .group-row.active{background:var(--accent-soft); box-shadow:inset 2px 0 0 var(--accent);}
+  .group-row .g-name{color:var(--ink); font-weight:600;}
+  .group-row .g-conditions{display:flex; flex-wrap:wrap; gap:4px;}
+  .cond-chip{
+    font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; background:#eef2f1; color:var(--ink-soft);
+  }
+  .cond-chip.event{background:#e5f0fd; color:#255a94;}
+  .cond-chip.facility{background:#f3e8fb; color:#6c3a94;}
+  .cond-chip.fixed{background:#eef2f1; color:var(--ink-faint);}
+  .add-group-btn{
+    font-size:11.5px; color:var(--accent); background:none; border:none; padding:6px 9px; text-align:left; font-weight:600;
+  }
+  .add-group-btn:hover{text-decoration:underline;}
+
+  .dim-links{margin-top:18px; border-top:1px solid var(--line-soft); padding-top:12px;}
+  .dim-link{display:flex; justify-content:space-between; align-items:center; padding:7px 9px; border-radius:7px; font-size:12.5px; color:var(--ink-soft); cursor:pointer;}
+  .dim-link:hover{background:var(--accent-soft); color:var(--accent-strong);}
+  .dim-link .count{font-size:11px; color:var(--ink-faint); background:#eef2f1; padding:1px 7px; border-radius:999px;}
+
+  /* ---------- middle: question list ---------- */
+  .pane-mid{overflow-y:auto; padding:20px 24px;}
+  .mid-head{display:flex; align-items:flex-start; gap:14px; margin-bottom:16px;}
+  .mid-head h2{font-size:16px;}
+  .mid-head .g-code{font-size:11.5px; color:var(--ink-faint); font-weight:600; margin-top:2px;}
+  .mid-head .spacer{flex:1;}
+  .mount-conditions{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--line);
+    border-radius:8px; padding:10px 14px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .mount-conditions .mc-label{font-size:11.5px; color:var(--ink-faint); font-weight:700;}
+  .mount-conditions .mc-and{font-size:10.5px; color:var(--ink-faint); font-weight:700;}
+
+  .q-table{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  .q-table-head{
+    display:grid; grid-template-columns:80px 1fr 100px 64px 40px; gap:8px; padding:9px 14px;
+    font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid var(--line-soft); background:#fafcfb;
+  }
+  .q-row{
+    display:grid; grid-template-columns:80px 1fr 100px 64px 40px; gap:8px; align-items:center;
+    padding:9px 14px; border-bottom:1px solid var(--line-soft); cursor:pointer; font-size:12.5px;
+  }
+  .q-row:last-child{border-bottom:none;}
+  .q-row:hover{background:var(--accent-soft);}
+  .q-row.active{background:var(--accent-soft); box-shadow:inset 2px 0 0 var(--accent);}
+  .q-row .code-badge{
+    font-size:11px; font-weight:700; color:var(--accent-strong); background:var(--accent-soft); padding:2px 7px;
+    border-radius:6px; display:inline-block; width:fit-content;
+  }
+  .q-row.depth-1 .code-badge{margin-left:16px;}
+  .q-row.depth-2 .code-badge{margin-left:32px;}
+  .q-row .q-label{color:var(--ink); display:flex; align-items:center; gap:6px;}
+  .q-row.depth-1 .q-label{padding-left:16px; color:var(--ink-soft);}
+  .q-row.depth-2 .q-label{padding-left:32px; color:var(--ink-soft);}
+  .q-row .no-label-tag{font-size:10px; color:var(--ink-faint); font-style:italic;}
+  .q-row .type-tag{font-size:11px; color:var(--ink-soft);}
+  .q-row .req-mark{color:var(--danger); font-weight:700; text-align:center;}
+  .q-row .opt-count{color:var(--ink-faint); text-align:center; font-size:11.5px;}
+  .static-row .q-label{font-style:italic; color:var(--ink-faint);}
+
+  .add-question-actions{display:flex; gap:8px; margin-top:10px;}
+  .add-question-btn{
+    font-size:12px; color:var(--accent); background:none; border:1px dashed var(--line);
+    border-radius:8px; padding:9px; flex:1; font-weight:600;
+  }
+  .add-question-btn:hover{border-color:var(--accent); background:var(--accent-soft);}
+  .add-question-btn.primary{
+    color:#fff; background:var(--accent); border:1px solid var(--accent);
+  }
+  .add-question-btn.primary:hover{background:var(--accent-strong); border-color:var(--accent-strong);}
+  .from-bank-tag{
+    font-size:9.5px; font-weight:700; color:var(--accent-strong); background:var(--accent-soft);
+    border-radius:4px; padding:1px 6px; margin-left:6px;
+  }
+
+  .rules-panel{margin-top:22px;}
+  .rules-panel summary{font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; padding:4px 0;}
+  .rule-row{
+    display:flex; align-items:center; gap:8px; font-size:12px; padding:8px 12px; background:var(--surface);
+    border:1px solid var(--line); border-radius:7px; margin-top:8px; flex-wrap:wrap;
+  }
+  .rule-pill{background:#eef2f1; color:var(--ink-soft); padding:2px 8px; border-radius:999px; font-weight:600;}
+  .rule-arrow{color:var(--ink-faint);}
+  .rule-action{font-weight:700; color:var(--accent-strong); background:var(--accent-soft); padding:2px 8px; border-radius:999px;}
+
+  /* ---------- right: inspector ---------- */
+  .pane-right{border-left:1px solid var(--line); background:var(--surface); overflow-y:auto; padding:18px 18px 60px;}
+  .inspector-empty{color:var(--ink-faint); font-size:12.5px; text-align:center; margin-top:60px; padding:0 16px; line-height:1.7;}
+  .insp-title{font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; margin-bottom:14px;}
+  .insp-field{margin-bottom:14px;}
+  .insp-field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .insp-field .field-hint{font-size:10.5px; color:var(--ink-faint); margin-top:4px; line-height:1.5;}
+  .insp-field input[type="text"], .insp-field textarea, .insp-field select{
+    width:100%; border:1px solid var(--line); border-radius:7px; padding:7px 10px; font-size:12.5px; font-family:inherit; background:#fff;
+  }
+  .insp-field textarea{min-height:56px; resize:vertical;}
+  .insp-row-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .switch{position:relative; width:36px; height:20px; flex:none;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch .track{position:absolute; inset:0; background:#c9d3d1; border-radius:999px; transition:.15s;}
+  .switch .track:before{content:""; position:absolute; width:16px; height:16px; left:2px; top:2px; background:#fff; border-radius:50%; transition:.15s;}
+  .switch input:checked + .track{background:var(--accent);}
+  .switch input:checked + .track:before{transform:translateX(16px);}
+
+  .options-editor{border-top:1px solid var(--line-soft); margin-top:18px; padding-top:16px;}
+  .opt-row{display:flex; align-items:center; gap:6px; margin-bottom:7px;}
+  .opt-row .opt-code{width:60px; font-size:11px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; text-align:center; color:var(--accent-strong); font-weight:700; background:var(--accent-soft);}
+  .opt-row .opt-label{flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:6px;}
+  .opt-row .opt-flag{font-size:9.5px; color:var(--ink-faint); border:1px solid var(--line); border-radius:4px; padding:2px 5px; flex:none;}
+  .add-option-btn{font-size:11.5px; color:var(--accent); background:none; border:none; font-weight:600; padding:4px 2px;}
+  .add-option-btn:hover{text-decoration:underline;}
+
+  .mc-editor{margin-top:14px;}
+  .mc-editor .mc-item{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .mc-editor select{flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-family:inherit;}
+  .mc-remove{border:none; background:none; color:var(--ink-faint); font-size:14px; padding:0 4px;}
+  .mc-remove:hover{color:var(--danger);}
+
+  ::-webkit-scrollbar{width:9px; height:9px;}
+  ::-webkit-scrollbar-thumb{background:#d3dad8; border-radius:99px;}
+
+  /* ---------- 新增題目 modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,32,30,.42); display:none;
+    align-items:flex-start; justify-content:center; z-index:100; padding:40px 20px; overflow-y:auto;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:var(--surface); border-radius:12px; width:560px; max-width:100%;
+    box-shadow:0 20px 60px -20px rgba(10,25,23,.35); overflow:hidden;
+  }
+  .modal-head{
+    display:flex; align-items:center; gap:10px; padding:18px 22px; border-bottom:1px solid var(--line);
+  }
+  .modal-head h3{font-size:15px;}
+  .modal-head .modal-sub{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+  .modal-close{margin-left:auto; border:none; background:none; font-size:18px; color:var(--ink-faint); line-height:1; padding:4px;}
+  .modal-close:hover{color:var(--ink);}
+  .modal-body{padding:20px 22px; max-height:62vh; overflow-y:auto;}
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:14px 22px; border-top:1px solid var(--line); background:#fafcfb;}
+  .field-error{border-color:var(--danger) !important;}
+  .field-error-msg{font-size:11px; color:var(--danger); margin-top:4px; display:none;}
+  .field-error-msg.show{display:block;}
+  .modal-options-list{display:flex; flex-direction:column; gap:7px; margin-top:8px;}
+  .modal-opt-row{display:flex; align-items:center; gap:6px;}
+  .modal-opt-row .opt-code{width:70px; font-size:11.5px; padding:6px 7px; border:1px solid var(--line); border-radius:6px; text-align:center; font-weight:700; color:var(--accent-strong); background:var(--accent-soft);}
+  .modal-opt-row .opt-label{flex:1; font-size:12.5px; padding:6px 9px; border:1px solid var(--line); border-radius:6px;}
+  .modal-opt-remove{border:none; background:none; color:var(--ink-faint); font-size:15px; padding:0 6px; flex:none;}
+  .modal-opt-remove:hover{color:var(--danger);}
+  .code-hint{
+    background:var(--accent-soft); color:var(--accent-strong); font-size:11px; border-radius:7px; padding:8px 10px; margin-top:8px; line-height:1.6;
+  }
+
+  /* ---------- 從題庫匯入 modal ---------- */
+  .bank-modal-box{width:640px;}
+  .bank-search{
+    width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;
+    margin-bottom:12px;
+  }
+  .bank-tags{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
+  .bank-tag-chip{
+    font-size:11.5px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid var(--line);
+    background:#fff; color:var(--ink-soft); cursor:pointer;
+  }
+  .bank-tag-chip:hover{border-color:var(--accent);}
+  .bank-tag-chip.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .bank-list{display:flex; flex-direction:column; gap:6px;}
+  .bank-item{
+    display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--line);
+    border-radius:8px; cursor:pointer;
+  }
+  .bank-item:hover{border-color:var(--accent); background:var(--accent-soft);}
+  .bank-item.checked{border-color:var(--accent); background:var(--accent-soft);}
+  .bank-item input{width:15px; height:15px; margin-top:2px; accent-color:var(--accent); flex:none;}
+  .bank-item-body{flex:1; min-width:0;}
+  .bank-item-label{font-size:13px; font-weight:600; color:var(--ink);}
+  .bank-item-meta{font-size:11px; color:var(--ink-faint); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;}
+  .bank-item-meta .tag-pill{background:#eef2f1; color:var(--ink-soft); padding:1px 7px; border-radius:999px;}
+  .bank-empty{text-align:center; color:var(--ink-faint); font-size:12.5px; padding:30px 0;}
+  .bank-modal-foot-note{font-size:11.5px; color:var(--ink-faint); margin-right:auto; align-self:center;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>病安通報單設計後台</div>
+  <div class="version-select">
+    <span>表單版本</span>
+    <select>
+      <option>2026-08（草稿）</option>
+      <option>2026-02（已發布）</option>
+    </select>
+    <span class="version-status">DRAFT</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn btn-ghost">預覽前台畫面</button>
+  <button class="btn btn-primary">發佈此版本</button>
+</div>
+
+<div class="shell">
+
+  <!-- ========== 左：表單結構樹 ========== -->
+  <div class="pane-left">
+    <div class="pane-title">表單結構（區塊 × 題組）</div>
+    <div id="structureTree"></div>
+
+    <div class="dim-links">
+      <div class="pane-title" style="padding-top:0;">分支維度管理</div>
+      <div class="dim-link"><span>事件類別 EVENT_CATEGORY</span><span class="count">11</span></div>
+      <div class="dim-link"><span>機構別 FACILITY_TYPE</span><span class="count">8</span></div>
+    </div>
+  </div>
+
+  <!-- ========== 中：選取題組的題目清單 ========== -->
+  <div class="pane-mid">
+    <div class="mid-head">
+      <div>
+        <h2 id="groupTitle">—</h2>
+        <div class="g-code" id="groupCode">—</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" id="addConditionBtn">＋ 顯示條件</button>
+    </div>
+
+    <div class="mount-conditions" id="mountConditionsBar"></div>
+
+    <div class="q-table">
+      <div class="q-table-head">
+        <div>代碼</div><div>題目 / 選項</div><div>題型</div><div style="text-align:center;">必填</div><div style="text-align:center;">選項</div>
+      </div>
+      <div id="questionRows"></div>
+    </div>
+    <div class="add-question-actions">
+      <button class="add-question-btn primary" id="importBankBtn">從題庫匯入題目</button>
+      <button class="add-question-btn" id="addQuestionBtn">＋ 手動新增題目</button>
+    </div>
+
+    <details class="rules-panel" open>
+      <summary>此題組相關的條件規則（question_conditions）</summary>
+      <div id="rulesList"></div>
+    </details>
+  </div>
+
+  <!-- ========== 右：屬性檢視器 ========== -->
+  <div class="pane-right" id="inspector">
+    <div class="inspector-empty">點選左側題組，或中間任一題目／選項，即可在此編輯其屬性。</div>
+  </div>
+
+</div>
+
+<!-- ========== 新增題目 Modal ========== -->
+<div class="modal-overlay" id="addQuestionModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3>新增題目</h3>
+        <div class="modal-sub" id="modalGroupTarget">將掛載於題組：—</div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="insp-field">
+        <label>代碼 QCode <span style="color:var(--danger);">*</span></label>
+        <input type="text" id="newQCode" placeholder="例：B2">
+        <div class="field-error-msg" id="err-code">請填寫代碼，且同題組內不可重複</div>
+        <div class="code-hint">同題組內既有根題目代碼：<span id="existingCodesHint">—</span>。新題目屬於同一階層，直接接續編號即可（例如 B2、B3…）。</div>
+      </div>
+      <div class="insp-field">
+        <label>題目文字 QLabel <span style="color:var(--danger);">*</span></label>
+        <textarea id="newQLabel" placeholder="請輸入題目文字（後台永遠填寫，即使前台不顯示）"></textarea>
+        <div class="field-error-msg" id="err-label">請填寫題目文字</div>
+      </div>
+      <div class="insp-field toggle-row">
+        <label style="margin:0;">顯示題目文字（QLabelVisible）</label>
+        <label class="switch"><input type="checkbox" id="newQLabelVisible" checked><span class="track"></span></label>
+      </div>
+      <div class="insp-field field-hint" style="margin-top:-8px;">關閉時前台只渲染選項，不印這行文字（適用於沒有獨立標題的子題，見模式二／模式三）</div>
+
+      <div class="insp-field">
+        <label>題型 QInputType</label>
+        <select id="newQInputType">
+          <option value="RADIO">RADIO（單選）</option>
+          <option value="CHECKBOX" selected>CHECKBOX（複選）</option>
+          <option value="TEXT">TEXT（單行文字）</option>
+          <option value="TEXTAREA">TEXTAREA（多行文字）</option>
+          <option value="DATE">DATE（日期）</option>
+          <option value="TIME">TIME（時間）</option>
+          <option value="NUMBER">NUMBER（數字）</option>
+          <option value="STATIC_TEXT">STATIC_TEXT（純說明文字，不可作答）</option>
+        </select>
+      </div>
+
+      <div class="insp-field toggle-row" id="requiredRow">
+        <label style="margin:0;">必填（QIsRequired）</label>
+        <label class="switch"><input type="checkbox" id="newQRequired"><span class="track"></span></label>
+      </div>
+
+      <div class="insp-row-2" id="minMaxRow">
+        <div class="insp-field"><label>最少選 QMinSelect</label><input type="text" id="newQMinSelect" placeholder="不限"></div>
+        <div class="insp-field"><label>最多選 QMaxSelect</label><input type="text" id="newQMaxSelect" placeholder="不限"></div>
+      </div>
+
+      <div class="insp-field">
+        <label>補充說明 QHelpText</label>
+        <textarea id="newQHelpText" placeholder="選填，顯示於題目下方"></textarea>
+      </div>
+
+      <div class="options-editor" id="optionsSection" style="margin-top:6px; padding-top:6px; border-top:none;">
+        <div class="insp-title" style="margin-bottom:2px;">選項 · question_options</div>
+        <div class="modal-options-list" id="modalOptionsList"></div>
+        <button class="add-option-btn" id="modalAddOptionBtn" type="button">＋ 新增選項</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modalCancelBtn" type="button">取消</button>
+      <button class="btn btn-primary" id="modalSubmitBtn" type="button">新增此題目</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 從題庫匯入 Modal ========== -->
+<div class="modal-overlay" id="importBankModal">
+  <div class="modal-box bank-modal-box">
+    <div class="modal-head">
+      <div>
+        <h3>從題庫匯入題目</h3>
+        <div class="modal-sub" id="bankModalGroupTarget">將匯入題組：—</div>
+      </div>
+      <button class="modal-close" id="bankModalCloseBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="bank-search" id="bankSearchInput" placeholder="搜尋題庫（題目文字、標籤）">
+      <div class="bank-tags" id="bankTagFilters"></div>
+      <div class="bank-list" id="bankList"></div>
+    </div>
+    <div class="modal-foot">
+      <span class="bank-modal-foot-note" id="bankSelectedCount">已選 0 題</span>
+      <button class="btn btn-ghost" id="bankModalCancelBtn" type="button">取消</button>
+      <button class="btn btn-primary" id="bankModalImportBtn" type="button">匯入所選題目</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------------- 資料模型（對應資料庫設計） ----------------
+  var EVENT_CATS = ['藥物事件','跌倒事件','管路事件','手術/麻醉事件','治療處置事件','醫療器材事件','輸血事件','感染事件','特殊材質事件','公共意外事件','其他'];
+  var FACILITY_TYPES = ['醫院','診所','藥局','護理之家','精神復健機構','居家式長照機構','社區式長照機構','其他'];
+
+  var sections = [
+    { code:'A', name:'通報事件資料', groups:['g-a1'] },
+    { code:'B', name:'事件情形（依事件類別）', groups:['g-b-drug','g-b-fall','g-b-tube'] },
+    { code:'C', name:'立即處理', groups:['g-c1'] },
+    { code:'D', name:'通報須知', groups:['g-d1'] },
+    { code:'E', name:'可能原因分析', groups:['g-e1','g-e8-drug','g-e8-fall'] },
+    { code:'F', name:'通報人資料', groups:['g-f1'] }
+  ];
+
+  var groups = {
+    'g-a1': { name:'受影響對象與基本資料', code:'ROOT_A_COMMON', conditions:[], questions:['q-a1'] },
+    'g-b-drug': { name:'藥物事件－事件發生階段', code:'B_DRUG_STAGE', conditions:[{dim:'事件類別', value:'藥物事件'}], questions:['q-b1-drug'] },
+    'g-b-fall': { name:'跌倒事件－跌倒情形', code:'B_FALL_CONTEXT', conditions:[{dim:'事件類別', value:'跌倒事件'}], questions:['q-b1-fall'] },
+    'g-b-tube': { name:'管路事件－管路種類', code:'B_TUBE_TYPE', conditions:[{dim:'事件類別', value:'管路事件'}], questions:['q-b1-tube'] },
+    'g-c1': { name:'立即處置清單', code:'ROOT_C_ACTIONS', conditions:[], questions:['q-c1'] },
+    'g-d1': { name:'通報須知文字', code:'ROOT_D_NOTICE', conditions:[], questions:['q-d1'] },
+    'g-e1': { name:'根本原因分析（共通）', code:'ROOT_CAUSE_COMMON', conditions:[], questions:['q-e1','q-e2','q-e3','q-e4','q-e5','q-e6','q-e7'], note:'跨 11 種事件類別共用同一題組' },
+    'g-e8-drug': { name:'藥物事件－與藥品因素相關（附加）', code:'CAUSE_DRUG_EXTRA', conditions:[{dim:'事件類別', value:'藥物事件'}], questions:['q-e8-drug'], note:'僅藥物事件掛載，示範模式五的「共通＋事件專屬附加」' },
+    'g-e8-fall': { name:'跌倒事件－與藥品因素相關（附加）', code:'CAUSE_FALL_EXTRA', conditions:[{dim:'事件類別', value:'跌倒事件'}], questions:['q-e8-fall'] },
+    'g-f1': { name:'通報人基本資料', code:'ROOT_F_REPORTER', conditions:[], questions:['q-f1','q-f2'] }
+  };
+
+  // 每個題目：code, label, labelVisible, inputType, required, help, options[], children[]（options 底下觸發的子題）
+  var questions = {
+    'q-a1': { code:'A4', label:'事件發生後受影響的對象及影響程度', labelVisible:true, inputType:'CHECKBOX', required:true, help:'', minSelect:1, maxSelect:null,
+      options:[
+        { code:'A4_4', label:'病人/住民/個案', hasTextInput:false, child:{ code:'A4_4', label:'性別', labelVisible:true, inputType:'RADIO', required:true, help:'', options:[
+          {code:'A4_4_1', label:'男性'}, {code:'A4_4_2', label:'女性'}, {code:'A4_4_3', label:'第三性別'}, {code:'A4_4_4', label:'不知道'}
+        ]}},
+        { code:'A4_1', label:'陪伴者', hasTextInput:false },
+        { code:'A4_2', label:'工作人員', hasTextInput:false },
+        { code:'A4_3', label:'訪客', hasTextInput:false }
+      ]
+    },
+    'q-b1-drug': { code:'B1', label:'事件發生階段', labelVisible:true, inputType:'CHECKBOX', required:true, help:'', minSelect:1, maxSelect:null,
+      options:[
+        { code:'B1_1', label:'醫囑開立與輸入', hasTextInput:false, child:{ code:'B1_1', label:'（無獨立標題，見模式二）', labelVisible:false, inputType:'CHECKBOX', required:false, help:'子題沿用觸發選項代碼 B1_1，前台不印題目文字', options:[
+          {code:'B1_1_1', label:'藥名錯誤'}, {code:'B1_1_2', label:'劑量錯誤'}, {code:'B1_1_3', label:'途徑錯誤'}, {code:'B1_1_4', label:'頻次錯誤'}
+        ]}},
+        { code:'B1_2', label:'藥品調劑', hasTextInput:false },
+        { code:'B1_3', label:'給藥', hasTextInput:false },
+        { code:'B1_4', label:'監測', hasTextInput:false },
+        { code:'B1_5', label:'其他', hasTextInput:true, textInputLabel:'請說明' }
+      ]
+    },
+    'q-b1-fall': { code:'B1', label:'跌倒發生時活動', labelVisible:true, inputType:'CHECKBOX', required:true, help:'', minSelect:1, maxSelect:null,
+      options:[
+        { code:'B1_1', label:'下床/如廁', hasTextInput:false },
+        { code:'B1_2', label:'移位/轉位', hasTextInput:false },
+        { code:'B1_3', label:'使用輔具中', hasTextInput:false, child:{ code:'B1_3', label:'（無獨立標題，見模式二）', labelVisible:false, inputType:'CHECKBOX', required:false, help:'', options:[
+          {code:'B1_3_1', label:'助行器'}, {code:'B1_3_2', label:'輪椅'}, {code:'B1_3_3', label:'拐杖'}
+        ]}}
+      ]
+    },
+    'q-b1-tube': { code:'B1', label:'涉及管路種類', labelVisible:true, inputType:'CHECKBOX', required:true, help:'', minSelect:1, maxSelect:null,
+      options:[
+        { code:'B1_1', label:'鼻胃管', hasTextInput:false },
+        { code:'B1_2', label:'導尿管', hasTextInput:false },
+        { code:'B1_3', label:'中央靜脈導管', hasTextInput:false },
+        { code:'B1_4', label:'氣管內管', hasTextInput:false }
+      ]
+    },
+    'q-c1': { code:'C1', label:'（無獨立標題，根題目 label_visible=0）', labelVisible:false, inputType:'CHECKBOX', required:false, help:'上方以 STATIC_TEXT 題目呈現操作說明，本題只渲染選項', minSelect:null, maxSelect:null,
+      options:[
+        {code:'C1_1', label:'加強監測', hasTextInput:false}, {code:'C1_2', label:'通知醫師', hasTextInput:false},
+        {code:'C1_3', label:'調整治療計畫', hasTextInput:false}, {code:'C1_4', label:'家屬溝通', hasTextInput:false},
+        {code:'C1_5', label:'其他', hasTextInput:true, textInputLabel:'請說明'}
+      ]
+    },
+    'q-d1': { code:null, label:'（純說明文字，STATIC_TEXT，無代碼）', labelVisible:true, inputType:'STATIC_TEXT', required:false, help:'內容：通報保密聲明與使用須知全文', options:[], isStatic:true },
+    'q-e1': { code:'E1', label:'一、與人員因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'', options:[
+      {code:'E1_1', label:'決策錯誤，指：訊息收集、狀況評估、選擇或反應不當'}, {code:'E1_2', label:'人員技術不當、遺漏或疏忽、未做覆核'},
+      {code:'E1_3', label:'缺乏對病人完整評估'}, {code:'E1_4', label:'感知錯誤（指：因視覺、聽覺或觸覺產生的問題）'},
+      {code:'E1_5', label:'經常性的違反常規作業（如：習慣走捷徑）'}, {code:'E1_6', label:'偶發性的違反常規作業'},
+      {code:'E1_7', label:'心理狀態（指：認知錯誤、注意力不集中、匆忙、過度自信、疲倦、被干擾、缺乏知識、經驗等）'},
+      {code:'E1_8', label:'事件發生時個人身體狀態不佳'}, {code:'E1_9', label:'工作外的活動影響了該員能安全進行工作的能力'},
+      {code:'E1_10', label:'不具執行該技術的資格、沒有被授權'}
+    ]},
+    'q-e2': { code:'E2', label:'二、與團隊或溝通因素相關', labelVisible:true, inputType:'CHECKBOX', required:false,
+      help:'原表單此類別下再分兩組子標題：「溝通相關」（E2_1～E2_9）與「團隊合作相關」（E2_10～E2_13）；此雛型以單一題目＋選項清單呈現，前台可用視覺分隔線還原分組（見前台雛型 E 區）。',
+      options:[
+        {code:'E2_1', label:'醫療團隊與病人或家屬（照顧者）溝通不足'}, {code:'E2_2', label:'醫療團隊未告知病人或家屬（照顧者）完整資訊（含口頭與書面）'},
+        {code:'E2_3', label:'衛教方式不當（含語言溝通不良）'}, {code:'E2_4', label:'有衛教工具，但未提供'},
+        {code:'E2_5', label:'醫療團隊間溝通不足'}, {code:'E2_6', label:'團隊成員間未能提供或要求訊息'},
+        {code:'E2_7', label:'團隊成員間訊息的確認失效'}, {code:'E2_8', label:'團隊一致性、連貫性不佳、指令不一'},
+        {code:'E2_9', label:'病人與家屬（照顧者）缺乏溝通或溝通不良'}, {code:'E2_10', label:'團隊成員間工作協調規劃不當'},
+        {code:'E2_11', label:'團隊成員間互相提醒或支援不足'}, {code:'E2_12', label:'團隊的領導者未能發揮領導功能'},
+        {code:'E2_13', label:'團隊的領導者未能塑造或強化團隊合作'}
+      ]},
+    'q-e3': { code:'E3', label:'三、與環境因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'', options:[
+      {code:'E3_1', label:'環境安全防護問題'}, {code:'E3_2', label:'環境雜亂、動線不良、空間侷限問題'},
+      {code:'E3_3', label:'光線不佳、溫度不佳、噪音問題'}, {code:'E3_4', label:'路面平整度/濕滑問題'}, {code:'E3_5', label:'天災/水、電供應故障'}
+    ]},
+    'q-e4': { code:'E4', label:'四、與資訊科技或器材設備因素相關', labelVisible:true, inputType:'CHECKBOX', required:false,
+      help:'原表單此類別下再分五組子標題：資訊系統與技術因素（E4_1～E4_4）、資訊系統介面與維運問題（E4_5～E4_6）、資訊儀器連線問題（E4_7～E4_8）、資訊安全問題（E4_9～E4_10）、器材或設備問題（E4_11～E4_15）；此雛型以單一題目＋選項清單呈現。原文件「資訊硬體設備設計/配置不佳」在兩個子分組下重複出現（E4_4 與 E4_8），已如實保留，未自行合併。',
+      options:[
+        {code:'E4_1', label:'資訊系統人為操作問題'}, {code:'E4_2', label:'資訊軟體設計或功能問題'}, {code:'E4_3', label:'資訊與臨床工作整合問題'},
+        {code:'E4_4', label:'資訊硬體設備設計/配置不佳'}, {code:'E4_5', label:'人機介面或資訊呈現不良'}, {code:'E4_6', label:'系統維護、效能或可用性問題'},
+        {code:'E4_7', label:'網路或藍芽問題'}, {code:'E4_8', label:'資訊硬體設備設計/配置不佳'}, {code:'E4_9', label:'人員資訊安全行為不當'},
+        {code:'E4_10', label:'資訊安全防護不足或遭受攻擊'}, {code:'E4_11', label:'儀器、器械操作不當'}, {code:'E4_12', label:'使用未經醫院核可之器材或設備'},
+        {code:'E4_13', label:'器材設備設計不良'}, {code:'E4_14', label:'器材設備故障或功能異常'}, {code:'E4_15', label:'標示不清'}
+      ]},
+    'q-e5': { code:'E5', label:'五、與病人或家屬（照顧者）因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'', options:[
+      {code:'E5_1', label:'病人或家屬（照顧者）未遵從醫囑或衛教'}, {code:'E5_2', label:'病人生理或疾病因素'},
+      {code:'E5_3', label:'病人飲酒或使用禁藥（娛樂性用藥）'}, {code:'E5_4', label:'病人使用非醫師同意之治療藥物或處置'},
+      {code:'E5_5', label:'病人或家屬（照顧者）未提供或提供錯誤病史/用藥史'},
+      {code:'E5_6', label:'其他，請說明', hasTextInput:true, textInputLabel:'請說明'}
+    ]},
+    'q-e6': { code:'E6', label:'六、與監督因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'', options:[
+      {code:'E6_1', label:'制訂的相關政策或流程不當或不適用'}, {code:'E6_2', label:'主管沒有給予明確的指示'},
+      {code:'E6_3', label:'主管未安排合適之現場指導者'}, {code:'E6_4', label:'臨床培訓和教育訓練不足'},
+      {code:'E6_5', label:'工作排程或人員配置不適當'}, {code:'E6_6', label:'任務指派未考慮員工的專長與能力'},
+      {code:'E6_7', label:'主管已知員工的問題，卻未及時制止或教導'}, {code:'E6_8', label:'主管未能維護/處理工作場所已知問題'},
+      {code:'E6_9', label:'主管允許不合規定的行為'}
+    ]},
+    'q-e7': { code:'E7', label:'七、與機構因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'', options:[
+      {code:'E7_1', label:'病安文化與價值觀問題'}, {code:'E7_2', label:'機構缺乏實質性的支持行動與支持度不足'},
+      {code:'E7_3', label:'機構對錯誤缺乏正面的檢討機制'}, {code:'E7_4', label:'醫院管理體系與規劃失當'},
+      {code:'E7_5', label:'醫院現行法規與標準規範未完善'}, {code:'E7_6', label:'醫院缺乏完善的內部查核與監督機制'},
+      {code:'E7_7', label:'人力資源管理策略不當（人力不足）'}, {code:'E7_8', label:'醫院軟硬體資源配置不足或不當'},
+      {code:'E7_9', label:'資訊系統與技術問題'}, {code:'E7_10', label:'器材或設備問題'}, {code:'E7_11', label:'外包管理不當'},
+      {code:'E7_12', label:'醫院在安全維護經費之投入不足'}
+    ]},
+    'q-e8-drug': { code:'E8', label:'八、與藥品因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'僅藥物事件掛載（見左側題組顯示條件）', options:[
+      {code:'E8_1', label:'藥局缺藥'}, {code:'E8_2', label:'藥品過期、變質或毀損'}, {code:'E8_3', label:'藥名相似'},
+      {code:'E8_4', label:'藥物外型或包裝相似'}, {code:'E8_5', label:'藥物有多種劑型/劑量'}, {code:'E8_6', label:'藥品標示不清'}, {code:'E8_7', label:'儲放不良'}
+    ]},
+    'q-e8-fall': { code:'E8', label:'八、與藥品因素相關', labelVisible:true, inputType:'CHECKBOX', required:false, help:'僅跌倒事件掛載（見左側題組顯示條件）；同樣是「八、與藥品因素相關」類別標題，但跌倒事件版本只有 1 個專屬項目', options:[
+      {code:'E8_1', label:'病人使用容易造成跌倒高風險之藥物'}
+    ]},
+    'q-f1': { code:'F1', label:'通報人姓名', labelVisible:true, inputType:'TEXT', required:false, help:'', options:[] },
+    'q-f2': { code:'F2', label:'是否需要保密', labelVisible:true, inputType:'RADIO', required:true, help:'', options:[{code:'F2_1', label:'是'},{code:'F2_2', label:'否'}] }
+  };
+
+  var rules = [
+    { groupId:'g-b-drug', trigger:'B1_1 醫囑開立與輸入（藥物事件）', action:'SHOW', target:'子題：藥名錯誤／劑量錯誤／途徑錯誤／頻次錯誤' },
+    { groupId:'g-b-fall', trigger:'B1_3 使用輔具中（跌倒事件）', action:'SHOW', target:'子題：助行器／輪椅／拐杖' },
+    { groupId:'g-a1', trigger:'A4_4 病人/住民/個案', action:'SHOW', target:'子題：性別' }
+  ];
+
+  // ---------------- 題庫（question bank，可跨題組重複匯入） ----------------
+  // 題庫是獨立於表單結構的題目範本庫：管理者不用每次手動打字建題，直接搜尋、勾選、匯入到目前選取的題組。
+  // 匯入時會依目標題組現有的根題目代碼，自動接續編號（見 nextCodeForGroup），並重新產生選項代碼。
+  var questionBank = [
+    { id:'bank-e1', tag:'原因分析', label:'一、與人員因素相關', inputType:'CHECKBOX',
+      options:['決策錯誤，指：訊息收集、狀況評估、選擇或反應不當','人員技術不當、遺漏或疏忽、未做覆核','缺乏對病人完整評估','感知錯誤（指：因視覺、聽覺或觸覺產生的問題）','經常性的違反常規作業（如：習慣走捷徑）','偶發性的違反常規作業','心理狀態（指：認知錯誤、注意力不集中、匆忙、過度自信、疲倦、被干擾、缺乏知識、經驗等）','事件發生時個人身體狀態不佳','工作外的活動影響了該員能安全進行工作的能力','不具執行該技術的資格、沒有被授權'] },
+    { id:'bank-e2', tag:'原因分析', label:'二、與團隊或溝通因素相關', inputType:'CHECKBOX',
+      options:['醫療團隊與病人或家屬（照顧者）溝通不足','醫療團隊未告知病人或家屬（照顧者）完整資訊（含口頭與書面）','衛教方式不當（含語言溝通不良）','有衛教工具，但未提供','醫療團隊間溝通不足','團隊成員間未能提供或要求訊息','團隊成員間訊息的確認失效','團隊一致性、連貫性不佳、指令不一','病人與家屬（照顧者）缺乏溝通或溝通不良','團隊成員間工作協調規劃不當','團隊成員間互相提醒或支援不足','團隊的領導者未能發揮領導功能','團隊的領導者未能塑造或強化團隊合作'] },
+    { id:'bank-e3', tag:'原因分析', label:'三、與環境因素相關', inputType:'CHECKBOX',
+      options:['環境安全防護問題','環境雜亂、動線不良、空間侷限問題','光線不佳、溫度不佳、噪音問題','路面平整度/濕滑問題','天災/水、電供應故障'] },
+    { id:'bank-e5', tag:'原因分析', label:'五、與病人或家屬（照顧者）因素相關', inputType:'CHECKBOX',
+      options:['病人或家屬（照顧者）未遵從醫囑或衛教','病人生理或疾病因素','病人飲酒或使用禁藥（娛樂性用藥）','病人使用非醫師同意之治療藥物或處置','病人或家屬（照顧者）未提供或提供錯誤病史/用藥史','其他，請說明'] },
+    { id:'bank-e6', tag:'原因分析', label:'六、與監督因素相關', inputType:'CHECKBOX',
+      options:['制訂的相關政策或流程不當或不適用','主管沒有給予明確的指示','主管未安排合適之現場指導者','臨床培訓和教育訓練不足','工作排程或人員配置不適當','任務指派未考慮員工的專長與能力','主管已知員工的問題，卻未及時制止或教導','主管未能維護/處理工作場所已知問題','主管允許不合規定的行為'] },
+    { id:'bank-e7', tag:'原因分析', label:'七、與機構因素相關', inputType:'CHECKBOX',
+      options:['病安文化與價值觀問題','機構缺乏實質性的支持行動與支持度不足','機構對錯誤缺乏正面的檢討機制','醫院管理體系與規劃失當','醫院現行法規與標準規範未完善','醫院缺乏完善的內部查核與監督機制','人力資源管理策略不當（人力不足）','醫院軟硬體資源配置不足或不當','資訊系統與技術問題','器材或設備問題','外包管理不當','醫院在安全維護經費之投入不足'] },
+    { id:'bank-other-note', tag:'通用欄位', label:'其他，請說明', inputType:'CHECKBOX', options:['其他，請說明'] },
+    { id:'bank-yesno', tag:'通用欄位', label:'是否需要保密', inputType:'RADIO', options:['是','否'] },
+    { id:'bank-companion', tag:'通用欄位', label:'陪伴者相關', inputType:'CHECKBOX', options:['家屬/照顧者','工作人員'] },
+    { id:'bank-freetext', tag:'通用欄位', label:'請敘述整起事件發生經過', inputType:'TEXTAREA', options:[] },
+    { id:'bank-date', tag:'通用欄位', label:'事件發生日期', inputType:'DATE', options:[] },
+    { id:'bank-time', tag:'通用欄位', label:'事件發生時間', inputType:'TIME', options:[] }
+  ];
+
+  // ---------------- 狀態 ----------------
+  var selectedGroupId = null;
+  var selectedQuestionRef = null; // {qid} or {qid, optIndex} or {qid, optIndex, isChild:true}
+
+  // ---------------- 左側樹 ----------------
+  function renderTree(){
+    var html = '';
+    sections.forEach(function(sec){
+      html += '<div class="sec-node"><div class="sec-head"><span class="badge">' + sec.code + '</span>' + sec.name + '</div>';
+      html += '<div class="group-list">';
+      sec.groups.forEach(function(gid){
+        var g = groups[gid];
+        var chips = g.conditions.length
+          ? g.conditions.map(function(c){ return '<span class="cond-chip ' + (c.dim === '事件類別' ? 'event' : 'facility') + '">' + c.dim + '=' + c.value + '</span>'; }).join('')
+          : '<span class="cond-chip fixed">固定顯示</span>';
+        html += '<div class="group-row' + (gid === selectedGroupId ? ' active' : '') + '" data-gid="' + gid + '">' +
+                  '<div class="g-name">' + g.name + '</div>' +
+                  '<div class="g-conditions">' + chips + '</div>' +
+                '</div>';
+      });
+      html += '<button class="add-group-btn">＋ 新增題組</button>';
+      html += '</div></div>';
+    });
+    document.getElementById('structureTree').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.group-row'), function(row){
+      row.addEventListener('click', function(){ selectGroup(row.dataset.gid); });
+    });
+  }
+
+  function selectGroup(gid){
+    selectedGroupId = gid;
+    selectedQuestionRef = null;
+    renderTree();
+    renderMid();
+    renderInspectorForGroup(gid);
+  }
+
+  // ---------------- 中間：題組標題 + 題目表 ----------------
+  function renderMid(){
+    var g = groups[selectedGroupId];
+    document.getElementById('groupTitle').textContent = g.name;
+    document.getElementById('groupCode').textContent = 'question_groups.code = ' + g.code + (g.note ? '　·　' + g.note : '');
+
+    var mcBar = document.getElementById('mountConditionsBar');
+    if(g.conditions.length === 0){
+      mcBar.innerHTML = '<span class="mc-label">顯示條件</span><span class="cond-chip fixed">無條件・固定顯示於此區塊</span>';
+    } else {
+      mcBar.innerHTML = '<span class="mc-label">顯示條件</span>' + g.conditions.map(function(c, i){
+        return (i > 0 ? '<span class="mc-and">AND</span>' : '') +
+          '<span class="cond-chip ' + (c.dim === '事件類別' ? 'event' : 'facility') + '">' + c.dim + ' = ' + c.value + '</span>';
+      }).join('');
+    }
+
+    var rowsHtml = '';
+    g.questions.forEach(function(qid){
+      var q = questions[qid];
+      rowsHtml += questionRowHtml(qid, q, 0);
+      if(!q.isStatic){
+        q.options.forEach(function(opt, oi){
+          rowsHtml += optionRowHtml(qid, oi, opt, 1);
+          if(opt.child){
+            rowsHtml += questionRowHtml(qid, opt.child, 1, oi, true);
+            opt.child.options.forEach(function(co, ci){
+              rowsHtml += optionRowHtml(qid, ci, co, 2, oi);
+            });
+          }
+        });
+      }
+    });
+    document.getElementById('questionRows').innerHTML = rowsHtml;
+
+    bindRowClicks();
+    renderRules();
+  }
+
+  function questionRowHtml(qid, q, depth, parentOptIndex, isChild){
+    var active = selectedQuestionRef && selectedQuestionRef.qid === qid && !selectedQuestionRef.optIndex && selectedQuestionRef.isChild === !!isChild;
+    var codeLabel = q.code || '—';
+    var labelHtml = q.labelVisible ? q.label : '<span class="q-label-text">' + q.label + '</span> <span class="no-label-tag">（label_visible=0）</span>';
+    if(q.fromBank) labelHtml += '<span class="from-bank-tag">題庫匯入</span>';
+    return '<div class="q-row depth-' + depth + (q.isStatic ? ' static-row' : '') + (active ? ' active' : '') + '" data-qid="' + qid + '"' + (isChild ? ' data-ischild="1" data-parentopt="' + parentOptIndex + '"' : '') + '>' +
+      '<div class="code-badge">' + codeLabel + '</div>' +
+      '<div class="q-label">' + labelHtml + '</div>' +
+      '<div class="type-tag">' + q.inputType + '</div>' +
+      '<div class="req-mark">' + (q.required ? '●' : '') + '</div>' +
+      '<div class="opt-count">' + (q.isStatic ? '—' : q.options.length) + '</div>' +
+      '</div>';
+  }
+
+  function optionRowHtml(qid, oi, opt, depth, parentOptIndex){
+    var active = selectedQuestionRef && selectedQuestionRef.qid === qid && selectedQuestionRef.optIndex === oi && selectedQuestionRef.parentOptIndex === parentOptIndex && !selectedQuestionRef.isChild;
+    return '<div class="q-row depth-' + depth + (active ? ' active' : '') + '" data-qid="' + qid + '" data-optindex="' + oi + '"' + (parentOptIndex !== undefined ? ' data-parentopt="' + parentOptIndex + '"' : '') + '>' +
+      '<div class="code-badge">' + opt.code + '</div>' +
+      '<div class="q-label">' + opt.label + (opt.hasTextInput ? ' <span class="no-label-tag">（其他，請說明）</span>' : '') + '</div>' +
+      '<div class="type-tag">選項</div>' +
+      '<div class="req-mark"></div>' +
+      '<div class="opt-count"></div>' +
+      '</div>';
+  }
+
+  function bindRowClicks(){
+    Array.prototype.forEach.call(document.querySelectorAll('.q-row'), function(row){
+      row.addEventListener('click', function(){
+        var qid = row.dataset.qid;
+        if(row.dataset.optindex !== undefined && row.hasAttribute('data-optindex')){
+          selectedQuestionRef = { qid:qid, optIndex:Number(row.dataset.optindex), parentOptIndex: row.dataset.parentopt !== undefined ? Number(row.dataset.parentopt) : undefined };
+          renderMid();
+          renderInspectorForOption(selectedQuestionRef);
+        } else {
+          var isChild = row.hasAttribute('data-ischild');
+          selectedQuestionRef = { qid:qid, isChild:isChild, parentOptIndex: row.dataset.parentopt !== undefined ? Number(row.dataset.parentopt) : undefined };
+          renderMid();
+          var q = isChild ? questions[qid].options[selectedQuestionRef.parentOptIndex].child : questions[qid];
+          renderInspectorForQuestion(q);
+        }
+      });
+    });
+  }
+
+  function renderRules(){
+    var relevant = rules.filter(function(r){ return r.groupId === selectedGroupId; });
+    if(relevant.length === 0){
+      document.getElementById('rulesList').innerHTML = '<div style="font-size:11.5px; color:var(--ink-faint); padding:8px 2px;">此題組目前沒有額外的條件規則。</div>';
+      return;
+    }
+    document.getElementById('rulesList').innerHTML = relevant.map(function(r){
+      return '<div class="rule-row"><span class="rule-pill">' + r.trigger + '</span><span class="rule-arrow">觸發 →</span><span class="rule-action">' + r.action + '</span><span class="rule-arrow">→</span><span class="rule-pill">' + r.target + '</span></div>';
+    }).join('');
+  }
+
+  // ---------------- 右側：Inspector ----------------
+  function renderInspectorForGroup(gid){
+    var g = groups[gid];
+    var html = '<div class="insp-title">題組屬性 · question_groups</div>';
+    html += fieldText('題組名稱 QGName', g.name);
+    html += fieldText('題組代碼 QGCode', g.code);
+    html += '<div class="mc-editor"><label style="display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:8px;">顯示條件（AND，section_question_group_contexts）</label>';
+    if(g.conditions.length === 0){
+      html += '<div class="field-hint" style="margin-bottom:8px;">目前無條件 → 不分維度、固定顯示。</div>';
+    } else {
+      g.conditions.forEach(function(c){
+        html += '<div class="mc-item"><select disabled><option>' + c.dim + ' = ' + c.value + '</option></select><button class="mc-remove">✕</button></div>';
+      });
+    }
+    html += '<button class="add-option-btn">＋ 加入條件（AND）</button></div>';
+    document.getElementById('inspector').innerHTML = html;
+  }
+
+  function renderInspectorForQuestion(q){
+    var html = '<div class="insp-title">題目屬性 · questions</div>';
+    html += fieldText('代碼 QCode', q.code || '（STATIC_TEXT 可留空）');
+    html += fieldTextarea('題目文字 QLabel', q.label);
+    html += '<div class="insp-field toggle-row"><label style="margin:0;">顯示題目文字（QLabelVisible）</label><label class="switch"><input type="checkbox" ' + (q.labelVisible ? 'checked' : '') + '><span class="track"></span></label></div>';
+    html += '<div class="insp-field field-hint" style="margin-top:-8px;">關閉時前台僅渲染選項，不印這行文字（見模式二／模式三）</div>';
+    html += fieldSelect('題型 QInputType', q.inputType, ['RADIO','CHECKBOX','TEXT','TEXTAREA','DATE','TIME','NUMBER','STATIC_TEXT']);
+    if(!q.isStatic){
+      html += '<div class="insp-field toggle-row"><label style="margin:0;">必填（QIsRequired）</label><label class="switch"><input type="checkbox" ' + (q.required ? 'checked' : '') + '><span class="track"></span></label></div>';
+    }
+    if(q.inputType === 'CHECKBOX'){
+      html += '<div class="insp-row-2"><div class="insp-field"><label>最少選 QMinSelect</label><input type="text" value="' + (q.minSelect || '') + '" placeholder="不限"></div><div class="insp-field"><label>最多選 QMaxSelect</label><input type="text" value="' + (q.maxSelect || '') + '" placeholder="不限"></div></div>';
+    }
+    html += fieldTextarea('補充說明 QHelpText', q.help || '');
+
+    if(!q.isStatic){
+      html += '<div class="options-editor"><div class="insp-title" style="margin-bottom:10px;">選項 · question_options</div>';
+      q.options.forEach(function(opt){
+        html += '<div class="opt-row"><input class="opt-code" type="text" value="' + opt.code + '"><input class="opt-label" type="text" value="' + opt.label + '">' +
+          (opt.hasTextInput ? '<span class="opt-flag">其他/文字欄</span>' : '') + '</div>';
+      });
+      html += '<button class="add-option-btn">＋ 新增選項</button></div>';
+    }
+    document.getElementById('inspector').innerHTML = html;
+  }
+
+  function renderInspectorForOption(ref){
+    var q = ref.parentOptIndex !== undefined ? questions[ref.qid].options[ref.parentOptIndex].child : questions[ref.qid];
+    var opt = q.options[ref.optIndex];
+    var html = '<div class="insp-title">選項屬性 · question_options</div>';
+    html += fieldText('代碼 QOCode', opt.code);
+    html += fieldText('選項文字 QOLabel', opt.label);
+    html += '<div class="insp-field toggle-row"><label style="margin:0;">展開文字說明欄（QOHasTextInput）</label><label class="switch"><input type="checkbox" ' + (opt.hasTextInput ? 'checked' : '') + '><span class="track"></span></label></div>';
+    if(opt.hasTextInput){
+      html += fieldText('文字欄提示 QOTextInputLabel', opt.textInputLabel || '請說明');
+    }
+    if(opt.child){
+      html += '<div class="field-hint" style="margin-top:12px; padding:10px; background:var(--accent-soft); border-radius:7px; color:var(--accent-strong);">此選項已掛載子題「' + opt.child.label + '」，可於中間清單點選子題列進行編輯。</div>';
+    } else {
+      html += '<button class="add-option-btn" style="margin-top:8px;">＋ 為此選項掛載子題（觸發顯示）</button>';
+    }
+    document.getElementById('inspector').innerHTML = html;
+  }
+
+  function fieldText(label, value){
+    return '<div class="insp-field"><label>' + label + '</label><input type="text" value="' + value.replace(/"/g,'&quot;') + '"></div>';
+  }
+  function fieldTextarea(label, value){
+    return '<div class="insp-field"><label>' + label + '</label><textarea>' + value + '</textarea></div>';
+  }
+  function fieldSelect(label, value, opts){
+    return '<div class="insp-field"><label>' + label + '</label><select>' + opts.map(function(o){ return '<option' + (o === value ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select></div>';
+  }
+
+  // ---------------- 新增題目 Modal ----------------
+  var modalOptions = [];
+  var modalQuestionCounter = 1;
+
+  var OPTION_ELIGIBLE_TYPES = ['RADIO', 'CHECKBOX'];
+
+  function openAddQuestionModal(){
+    if(!selectedGroupId) return;
+    var g = groups[selectedGroupId];
+
+    document.getElementById('modalGroupTarget').textContent = '將掛載於題組：' + g.name + '（' + g.code + '）';
+    document.getElementById('newQCode').value = '';
+    document.getElementById('newQCode').classList.remove('field-error');
+    document.getElementById('newQLabel').value = '';
+    document.getElementById('newQLabel').classList.remove('field-error');
+    document.getElementById('err-code').classList.remove('show');
+    document.getElementById('err-label').classList.remove('show');
+    document.getElementById('newQLabelVisible').checked = true;
+    document.getElementById('newQInputType').value = 'CHECKBOX';
+    document.getElementById('newQRequired').checked = false;
+    document.getElementById('newQMinSelect').value = '';
+    document.getElementById('newQMaxSelect').value = '';
+    document.getElementById('newQHelpText').value = '';
+
+    var rootCodes = g.questions.map(function(qid){ return questions[qid].code; }).filter(Boolean);
+    document.getElementById('existingCodesHint').textContent = rootCodes.length ? rootCodes.join('、') : '（此題組目前尚無根題目）';
+
+    modalOptions = [ { code:'', label:'', hasTextInput:false }, { code:'', label:'', hasTextInput:false } ];
+    renderModalOptions();
+    updateModalFieldVisibility();
+
+    document.getElementById('addQuestionModal').classList.add('show');
+  }
+
+  function closeAddQuestionModal(){
+    document.getElementById('addQuestionModal').classList.remove('show');
+  }
+
+  function updateModalFieldVisibility(){
+    var type = document.getElementById('newQInputType').value;
+    var isStatic = type === 'STATIC_TEXT';
+    document.getElementById('requiredRow').style.display = isStatic ? 'none' : 'flex';
+    document.getElementById('minMaxRow').style.display = (type === 'CHECKBOX') ? 'grid' : 'none';
+    document.getElementById('optionsSection').style.display = OPTION_ELIGIBLE_TYPES.indexOf(type) > -1 ? 'block' : 'none';
+  }
+
+  function renderModalOptions(){
+    var html = modalOptions.map(function(opt, i){
+      return '<div class="modal-opt-row" data-idx="' + i + '">' +
+        '<input class="opt-code" type="text" placeholder="代碼" value="' + opt.code.replace(/"/g,'&quot;') + '" data-field="code">' +
+        '<input class="opt-label" type="text" placeholder="選項文字" value="' + opt.label.replace(/"/g,'&quot;') + '" data-field="label">' +
+        '<button class="modal-opt-remove" type="button" title="移除">✕</button>' +
+      '</div>';
+    }).join('');
+    document.getElementById('modalOptionsList').innerHTML = html;
+
+    Array.prototype.forEach.call(document.querySelectorAll('#modalOptionsList input'), function(inp){
+      inp.addEventListener('input', function(){
+        var row = inp.closest('.modal-opt-row');
+        var idx = Number(row.dataset.idx);
+        modalOptions[idx][inp.dataset.field] = inp.value;
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.modal-opt-remove'), function(btn){
+      btn.addEventListener('click', function(){
+        var row = btn.closest('.modal-opt-row');
+        modalOptions.splice(Number(row.dataset.idx), 1);
+        renderModalOptions();
+      });
+    });
+  }
+
+  function submitAddQuestion(){
+    var codeInput = document.getElementById('newQCode');
+    var labelInput = document.getElementById('newQLabel');
+    var type = document.getElementById('newQInputType').value;
+    var isStatic = type === 'STATIC_TEXT';
+    var code = codeInput.value.trim();
+    var label = labelInput.value.trim();
+
+    var hasError = false;
+    var g = groups[selectedGroupId];
+    var codeTaken = code && g.questions.some(function(qid){ return questions[qid].code === code; });
+
+    if(!isStatic && (!code || codeTaken)){
+      codeInput.classList.add('field-error');
+      document.getElementById('err-code').classList.add('show');
+      hasError = true;
+    } else {
+      codeInput.classList.remove('field-error');
+      document.getElementById('err-code').classList.remove('show');
+    }
+    if(!label){
+      labelInput.classList.add('field-error');
+      document.getElementById('err-label').classList.add('show');
+      hasError = true;
+    } else {
+      labelInput.classList.remove('field-error');
+      document.getElementById('err-label').classList.remove('show');
+    }
+    if(hasError) return;
+
+    var newQuestion = {
+      code: isStatic ? (code || null) : code,
+      label: label,
+      labelVisible: document.getElementById('newQLabelVisible').checked,
+      inputType: type,
+      required: isStatic ? false : document.getElementById('newQRequired').checked,
+      help: document.getElementById('newQHelpText').value.trim(),
+      minSelect: document.getElementById('newQMinSelect').value.trim() ? Number(document.getElementById('newQMinSelect').value.trim()) : null,
+      maxSelect: document.getElementById('newQMaxSelect').value.trim() ? Number(document.getElementById('newQMaxSelect').value.trim()) : null,
+      options: [],
+      isStatic: isStatic
+    };
+
+    if(OPTION_ELIGIBLE_TYPES.indexOf(type) > -1){
+      newQuestion.options = modalOptions
+        .filter(function(o){ return o.code.trim() || o.label.trim(); })
+        .map(function(o){ return { code:o.code.trim(), label:o.label.trim(), hasTextInput:false }; });
+    }
+
+    var newId = 'q-custom-' + (modalQuestionCounter++);
+    questions[newId] = newQuestion;
+    g.questions.push(newId);
+
+    closeAddQuestionModal();
+    renderMid();
+    selectedQuestionRef = { qid:newId };
+    renderMid();
+    renderInspectorForQuestion(newQuestion);
+
+    var newRow = document.querySelector('.q-row[data-qid="' + newId + '"]');
+    if(newRow) newRow.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+
+  document.getElementById('addQuestionBtn').addEventListener('click', openAddQuestionModal);
+  document.getElementById('modalCloseBtn').addEventListener('click', closeAddQuestionModal);
+  document.getElementById('modalCancelBtn').addEventListener('click', closeAddQuestionModal);
+  document.getElementById('addQuestionModal').addEventListener('click', function(e){
+    if(e.target.id === 'addQuestionModal') closeAddQuestionModal();
+  });
+  document.getElementById('newQInputType').addEventListener('change', updateModalFieldVisibility);
+  document.getElementById('modalAddOptionBtn').addEventListener('click', function(){
+    modalOptions.push({ code:'', label:'', hasTextInput:false });
+    renderModalOptions();
+  });
+  document.getElementById('modalSubmitBtn').addEventListener('click', submitAddQuestion);
+
+  // ---------------- 從題庫匯入 Modal ----------------
+  var bankSelected = {};   // { bankId: true }
+  var bankSearchTerm = '';
+  var bankActiveTag = '全部';
+  var bankQuestionCounter = 1;
+  var BANK_TAGS = ['全部', '原因分析', '通用欄位'];
+
+  function nextCodeForGroup(gid){
+    var g = groups[gid];
+    var existing = g.questions.map(function(qid){ return questions[qid].code; }).filter(Boolean);
+    if(existing.length){
+      var m = existing[0].match(/^([A-Za-z]+)(\d+)$/);
+      var prefix = m ? m[1] : '';
+      var maxNum = 0;
+      existing.forEach(function(c){
+        var mm = c.match(/^([A-Za-z]+)(\d+)$/);
+        if(mm && mm[1] === prefix) maxNum = Math.max(maxNum, parseInt(mm[2], 10));
+      });
+      return prefix + (maxNum + 1);
+    }
+    var sec = sections.filter(function(s){ return s.groups.indexOf(gid) > -1; })[0];
+    return (sec ? sec.code : 'Q') + '1';
+  }
+
+  function openImportBankModal(){
+    if(!selectedGroupId) return;
+    var g = groups[selectedGroupId];
+    document.getElementById('bankModalGroupTarget').textContent = '將匯入題組：' + g.name + '（' + g.code + '）';
+    bankSelected = {};
+    bankSearchTerm = '';
+    bankActiveTag = '全部';
+    document.getElementById('bankSearchInput').value = '';
+    renderBankTagFilters();
+    renderBankList();
+    updateBankSelectedCount();
+    document.getElementById('importBankModal').classList.add('show');
+  }
+
+  function closeImportBankModal(){
+    document.getElementById('importBankModal').classList.remove('show');
+  }
+
+  function renderBankTagFilters(){
+    document.getElementById('bankTagFilters').innerHTML = BANK_TAGS.map(function(tag){
+      return '<button type="button" class="bank-tag-chip' + (tag === bankActiveTag ? ' active' : '') + '" data-tag="' + tag + '">' + tag + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.bank-tag-chip'), function(btn){
+      btn.addEventListener('click', function(){
+        bankActiveTag = btn.dataset.tag;
+        renderBankTagFilters();
+        renderBankList();
+      });
+    });
+  }
+
+  function renderBankList(){
+    var term = bankSearchTerm.trim();
+    var filtered = questionBank.filter(function(item){
+      var matchesTag = bankActiveTag === '全部' || item.tag === bankActiveTag;
+      var matchesTerm = !term || item.label.indexOf(term) > -1 || item.tag.indexOf(term) > -1;
+      return matchesTag && matchesTerm;
+    });
+
+    if(filtered.length === 0){
+      document.getElementById('bankList').innerHTML = '<div class="bank-empty">找不到符合的題庫項目</div>';
+      return;
+    }
+
+    document.getElementById('bankList').innerHTML = filtered.map(function(item){
+      var checked = !!bankSelected[item.id];
+      var optCount = item.options.length ? item.options.length + ' 個選項' : '無選項';
+      return '<label class="bank-item' + (checked ? ' checked' : '') + '" data-id="' + item.id + '">' +
+        '<input type="checkbox"' + (checked ? ' checked' : '') + '>' +
+        '<div class="bank-item-body">' +
+          '<div class="bank-item-label">' + item.label + '</div>' +
+          '<div class="bank-item-meta"><span class="tag-pill">' + item.tag + '</span><span>' + item.inputType + '</span><span>' + optCount + '</span></div>' +
+        '</div>' +
+      '</label>';
+    }).join('');
+
+    Array.prototype.forEach.call(document.querySelectorAll('.bank-item'), function(row){
+      row.addEventListener('click', function(e){
+        e.preventDefault();
+        var id = row.dataset.id;
+        bankSelected[id] = !bankSelected[id];
+        renderBankList();
+        updateBankSelectedCount();
+      });
+    });
+  }
+
+  function updateBankSelectedCount(){
+    var count = Object.keys(bankSelected).filter(function(id){ return bankSelected[id]; }).length;
+    document.getElementById('bankSelectedCount').textContent = '已選 ' + count + ' 題';
+  }
+
+  function importSelectedBankItems(){
+    var selectedIds = Object.keys(bankSelected).filter(function(id){ return bankSelected[id]; });
+    if(selectedIds.length === 0){ closeImportBankModal(); return; }
+
+    var g = groups[selectedGroupId];
+    var lastNewId = null;
+
+    selectedIds.forEach(function(bid){
+      var bankItem = questionBank.filter(function(b){ return b.id === bid; })[0];
+      var newCode = nextCodeForGroup(selectedGroupId);
+      var newQuestion = {
+        code: newCode,
+        label: bankItem.label,
+        labelVisible: true,
+        inputType: bankItem.inputType,
+        required: false,
+        help: '',
+        minSelect: null,
+        maxSelect: null,
+        options: bankItem.options.map(function(label, i){
+          var opt = { code: newCode + '_' + (i + 1), label: label };
+          if(label.indexOf('其他') === 0) { opt.hasTextInput = true; opt.textInputLabel = '請說明'; }
+          return opt;
+        }),
+        fromBank: true
+      };
+      var newId = 'q-bank-' + (bankQuestionCounter++);
+      questions[newId] = newQuestion;
+      g.questions.push(newId);
+      lastNewId = newId;
+    });
+
+    closeImportBankModal();
+    renderMid();
+    if(lastNewId){
+      selectedQuestionRef = { qid:lastNewId };
+      renderMid();
+      renderInspectorForQuestion(questions[lastNewId]);
+      var newRow = document.querySelector('.q-row[data-qid="' + lastNewId + '"]');
+      if(newRow) newRow.scrollIntoView({block:'center', behavior:'smooth'});
+    }
+  }
+
+  document.getElementById('importBankBtn').addEventListener('click', openImportBankModal);
+  document.getElementById('bankModalCloseBtn').addEventListener('click', closeImportBankModal);
+  document.getElementById('bankModalCancelBtn').addEventListener('click', closeImportBankModal);
+  document.getElementById('importBankModal').addEventListener('click', function(e){
+    if(e.target.id === 'importBankModal') closeImportBankModal();
+  });
+  document.getElementById('bankSearchInput').addEventListener('input', function(e){
+    bankSearchTerm = e.target.value;
+    renderBankList();
+  });
+  document.getElementById('bankModalImportBtn').addEventListener('click', importSelectedBankItems);
+
+  // ---------------- init ----------------
+  renderTree();
+  selectGroup('g-b-drug');
+})();
+</script>
+</body>
+</html>
